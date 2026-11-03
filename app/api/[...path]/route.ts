@@ -10,14 +10,39 @@ export const dynamic = "force-dynamic";
 // ceiling on Vercel Hobby and well within Pro.
 export const maxDuration = 60;
 
+// Values pasted into the Vercel form often carry a trailing newline, spaces, or even a copied
+// terminal prompt. Keep only the first whitespace-separated word, so a sloppy paste still works.
+const firstWord = (v: string | undefined) => (v ?? "").trim().split(/\s+/)[0] ?? "";
+
+function cleanUrl(raw: string): string {
+  let u = firstWord(raw).replace(/\/+$/, "").replace(/\/api$/i, "");
+  if (u && !/^https?:\/\//i.test(u)) u = `https://${u}`;
+  return u;
+}
+
 const BACKEND =
-  process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
-const TOKEN = process.env.BACKEND_TOKEN || "";
+  cleanUrl(process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_BASE || "") || "http://127.0.0.1:8000";
+// Only characters that are legal in an HTTP header value survive.
+const TOKEN = firstWord(process.env.BACKEND_TOKEN).replace(/[^\x21-\x7E]/g, "");
+
+/** Says which setting is malformed, never what it contains. */
+function configProblem(): string | null {
+  try {
+    const u = new URL(BACKEND);
+    if (!u.hostname) return "BACKEND_URL has no host name";
+  } catch {
+    return "BACKEND_URL is not a valid URL (expected https://host, with no path)";
+  }
+  if (!TOKEN) return "BACKEND_TOKEN is empty";
+  return null;
+}
 // Abort just under maxDuration so a hung backend returns a clean 504 JSON rather
 // than the platform killing the function with an opaque error.
 const UPSTREAM_TIMEOUT_MS = 55_000;
 
 async function forward(req: NextRequest, path: string[]): Promise<NextResponse> {
+  const problem = configProblem();
+  if (problem) return NextResponse.json({ detail: `backend is not configured: ${problem}` }, { status: 500 });
   const url = `${BACKEND}/api/${path.join("/")}${req.nextUrl.search}`;
   const headers: Record<string, string> = {};
   const contentType = req.headers.get("content-type");
@@ -44,11 +69,12 @@ async function forward(req: NextRequest, path: string[]): Promise<NextResponse> 
     });
   } catch (e) {
     const aborted = e instanceof Error && e.name === "AbortError";
+    const cause = e instanceof Error && e.cause instanceof Error ? ` (${e.cause.message.slice(0, 120)})` : "";
     return NextResponse.json(
       {
         detail: aborted
           ? `backend timed out after ${UPSTREAM_TIMEOUT_MS / 1000}s`
-          : `backend unreachable: ${String(e)}`,
+          : `backend unreachable: ${String(e)}${cause}`,
       },
       { status: aborted ? 504 : 502 },
     );
