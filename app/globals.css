@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* One accent (emerald) means live / yours / ok. Amber means a caution, coral means failure.
+   RGB triplets so Tailwind's opacity modifiers work (bg-accent/10). */
+:root {
+  --ink-950: 10 12 16;
+  --ink-900: 15 18 24;
+  --ink-850: 20 24 33;
+  --ink-800: 26 31 43;
+  --ink-700: 34 41 55;
+  --ink-line: 40 49 66;
+
+  --fg: 231 236 242;
+  --fg-muted: 167 176 190;
+  --fg-subtle: 130 139 155;
+  --fg-faint: 100 108 122;
+
+  --accent: 52 211 153;
+  --accent-dim: 16 185 129;
+  --warn: 251 191 36;
+  --danger: 248 113 113;
+
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --ink-950: 236 239 244;
+  --ink-900: 240 243 247;
+  --ink-850: 245 247 250;
+  --ink-800: 249 250 252;
+  --ink-700: 255 255 255;
+  --ink-line: 210 217 226;
+
+  --fg: 13 20 34;
+  --fg-muted: 67 75 89;
+  --fg-subtle: 94 102 117;
+  --fg-faint: 138 146 160;
+
+  --accent: 4 120 87;
+  --accent-dim: 6 95 70;
+  --warn: 180 83 9;
+  --danger: 200 30 30;
+
+  color-scheme: light;
+}
+
+html,
+body {
+  background-color: rgb(var(--ink-950));
+  color: rgb(var(--fg));
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--accent) / 0.7);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+::selection {
+  background: rgb(var(--accent) / 0.28);
+}
+
+@layer base {
+  input,
+  textarea,
+  select {
+    caret-color: rgb(var(--accent));
+  }
+  ::placeholder {
+    color: rgb(var(--fg-subtle));
+    opacity: 1;
+  }
+  select option {
+    background: rgb(var(--ink-850));
+    color: rgb(var(--fg));
+  }
+}
+
+@layer utilities {
+  .tnum {
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
