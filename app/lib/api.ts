@@ -183,6 +183,21 @@ export interface AccountImportResult {
   added_to_view_pool: number;
 }
 
+// ---- Follow job -----------------------------------------------------------------------
+export interface FollowJob {
+  job_id: string;
+  profile: string;
+  count: number;
+  dry_run: boolean;
+  status: "running" | "done" | "error";
+  error: string | null;
+  halted: string | null; // set when the safety stop tripped
+  planned: number; // accounts chosen to follow
+  attempted: number;
+  succeeded: number;
+  results: { account: string; ok: boolean; error?: string }[];
+}
+
 // ---- Other networks -------------------------------------------------------------------
 export interface PlatformAccount {
   account: string;
@@ -296,6 +311,11 @@ export const api = {
       dry_run: opts.dryRun,
       add_to_view_pool: opts.addToViewPool,
     }),
+
+  // Follow a profile from many accounts, slowly (dryRun only previews how many are eligible)
+  startFollow: (profile_url: string, count: number, dry_run: boolean) =>
+    sendJSON<FollowJob>("POST", "/api/follow", { profile_url, count, dry_run }),
+  getFollow: (jobId: string) => getJSON<FollowJob>(`/api/follow/${encodeURIComponent(jobId)}`),
 
   // Other networks
   platformFleet: (slug: "ig" | "yt" | "tiktok") => getJSON<PlatformFleet>(`/api/${slug}/accounts`),

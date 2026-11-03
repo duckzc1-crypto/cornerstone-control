@@ -7,6 +7,7 @@ import { Card, Empty, Freshness, PageHeader, Pill, Skeleton, Stat } from "../../
 import { RestartFleet } from "../../components/RestartFleet";
 import { AccountsList } from "../../components/AccountsList";
 import { AccountImport } from "../../components/AccountImport";
+import { FollowProfiles } from "../../components/FollowProfiles";
 
 export default function FleetPage() {
   const fleet = usePoll(api.getFleet, 10_000);
@@ -74,6 +75,7 @@ export default function FleetPage() {
         </Card>
 
         <RestartFleet />
+        <FollowProfiles />
         <AccountsList accounts={accounts.data} loading={accounts.loading} error={accounts.error} />
         <AccountImport onImported={() => void accounts.reload()} />
       </div>
