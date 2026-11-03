@@ -3,7 +3,7 @@
 import { api } from "../../lib/api";
 import { fmtAge, fmtCount, fmtEta } from "../../lib/format";
 import { usePoll } from "../../lib/usePoll";
-import { Card, Empty, Freshness, PageHeader, Pill, Skeleton, Stat } from "../../components/ui";
+import { Card, Empty, Freshness, Notice, PageHeader, Pill, Skeleton, Stat } from "../../components/ui";
 import { RestartFleet } from "../../components/RestartFleet";
 import { AccountsList } from "../../components/AccountsList";
 import { AccountImport } from "../../components/AccountImport";
@@ -13,11 +13,16 @@ export default function FleetPage() {
   const fleet = usePoll(api.getFleet, 10_000);
   const health = usePoll(api.getHealth, 10_000);
   const accounts = usePoll(api.accounts, 120_000);
+  const ae = usePoll(api.getAutoEngage, 15_000);
 
   const f = fleet.data;
   const h = health.data;
-  const threads = f?.server_threads ?? null;
-  const load = f?.server_load ?? null;
+  const tp = ae.data?.throughput;
+  // Only trust the server-stats feed while it is fresh: it can stop updating silently.
+  const feedAgeS = f?.ts != null ? Date.now() / 1000 - f.ts : null;
+  const feedFresh = feedAgeS != null && feedAgeS < 300;
+  const threads = feedFresh ? f?.server_threads ?? null : null;
+  const load = feedFresh ? f?.server_load ?? null : null;
   const overloaded = threads != null && load != null && load > threads * 1.5;
 
   return (
@@ -30,17 +35,25 @@ export default function FleetPage() {
 
       <div className="space-y-5">
         <Card title="Server" subtitle={f?.server_name ? `${f.server_name}${threads ? ` · ${threads} threads` : ""}` : undefined}>
+          {feedAgeS != null && !feedFresh && (
+            <div className="mb-5">
+              <Notice tone="warn">
+                The server-stats feed has not updated for {fmtAge(feedAgeS)}, so server load is hidden. Speed and finish time below come from the posts&rsquo; own counts and are live.
+                On the server, check that the status job is scheduled (<span className="font-mono">crontab -l</span> should list fleet_status.py).
+              </Notice>
+            </div>
+          )}
           {fleet.loading && !f ? (
             <Skeleton className="h-16" />
           ) : (
             <div className="grid grid-cols-2 gap-x-6 gap-y-6 lg:grid-cols-4">
-              <Stat label="Views per minute" tone={f?.views_per_min ? "ok" : "neutral"} value={f?.views_per_min != null ? fmtCount(f.views_per_min) : "—"} />
-              <Stat label="Time to finish" value={fmtEta(f?.eta_hours)} sub="at the current speed" />
+              <Stat label="Views per minute" tone={(tp?.views_per_min ?? 0) > 0 ? "ok" : "neutral"} value={tp?.views_per_min != null ? fmtCount(tp.views_per_min) : "—"} sub="from the posts' own counts" />
+              <Stat label="Time to finish" value={fmtEta(tp?.eta_hours)} sub="at the current speed" />
               <Stat
                 label="Server load"
                 tone={overloaded ? "warn" : "neutral"}
                 value={load != null ? Math.round(load) : "—"}
-                sub={threads ? `${threads} threads${overloaded ? " · overloaded, speed is CPU-limited" : ""}` : undefined}
+                sub={threads ? `${threads} threads${overloaded ? " · overloaded, speed is CPU-limited" : ""}` : "not reporting"}
               />
               <Stat
                 label="View workers reporting"

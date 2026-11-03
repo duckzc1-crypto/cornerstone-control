@@ -91,6 +91,7 @@ export interface BoostResult {
 
 // ---- Fleet / health -------------------------------------------------------------------
 export interface FleetStatus {
+  ts?: number; // when the server last wrote this feed (epoch seconds)
   workers: number;
   desired: number;
   remaining: number;

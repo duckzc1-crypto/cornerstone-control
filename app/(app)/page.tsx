@@ -33,9 +33,12 @@ export default function OverviewPage() {
   const boosting = running.filter((c) => c.active).length;
   const waiting = running.length - boosting;
   const tp = ae.data?.throughput;
-  const speed = fleet.data?.views_per_min ?? tp?.views_per_min ?? null;
-  const eta = fleet.data?.eta_hours ?? tp?.eta_hours ?? null;
-  const remaining = fleet.data?.remaining ?? tp?.remaining_views ?? null;
+  // The posts' own counts are the live source. The server-stats feed is used only while it is fresh,
+  // because it can stop updating without any error (it did, for 19 hours, after the server move).
+  const fleetFresh = fleet.data?.ts != null && Date.now() / 1000 - fleet.data.ts < 300;
+  const speed = tp?.views_per_min ?? (fleetFresh ? fleet.data?.views_per_min : null) ?? null;
+  const eta = tp?.eta_hours ?? (fleetFresh ? fleet.data?.eta_hours : null) ?? null;
+  const remaining = tp?.remaining_views ?? (fleetFresh ? fleet.data?.remaining : null) ?? null;
   const days = useMemo(() => dailyBars(metrics.data), [metrics.data]);
 
   return (
@@ -69,11 +72,7 @@ export default function OverviewPage() {
                 label="Views per minute"
                 tone={speed ? "ok" : "neutral"}
                 value={speed != null ? fmtCount(speed) : "—"}
-                sub={
-                  fleet.data?.rate_source === "x_counts"
-                    ? `measured from X's counts over ${fleet.data.rate_window_min ?? 30} min`
-                    : "recent fleet speed"
-                }
+                sub="measured from X's public view counts"
               />
               <Stat label="Time to finish" value={fmtEta(eta)} sub="all posts, at the current speed" />
               <Stat label="Views still wanted" value={remaining != null ? fmtCount(remaining) : "—"} sub={remaining != null ? `${fmtFull(remaining)} in total` : undefined} />
