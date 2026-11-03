@@ -35,6 +35,20 @@ export function handleOf(input: string): string | null {
   return null;
 }
 
+/** The backend answers {"error":"unknown job"} (HTTP 200) for a job it has forgotten, e.g. after a restart. */
+function isJob(x: unknown): x is FollowJob {
+  const j = x as Partial<FollowJob> | null;
+  return !!j && typeof j.job_id === "string" && Array.isArray(j.results) && typeof j.planned === "number" && typeof j.attempted === "number" && typeof j.profile === "string";
+}
+
+function forgetJob(): void {
+  try {
+    localStorage.removeItem(STORE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 function failureSummary(job: FollowJob): string {
   const counts = new Map<string, number>();
   for (const r of job.results) {
@@ -88,15 +102,10 @@ export function FollowProfiles() {
     api
       .getFollow(id)
       .then((j) => {
-        if (!j.dry_run) setJob(j);
+        if (isJob(j) && !j.dry_run) setJob(j);
+        else if (!isJob(j)) forgetJob();     // the server no longer knows this job
       })
-      .catch(() => {
-        try {
-          localStorage.removeItem(STORE_KEY);
-        } catch {
-          /* ignore */
-        }
-      });
+      .catch(() => forgetJob());
   }, []);
 
   // follow a running job until it finishes
@@ -107,7 +116,13 @@ export function FollowProfiles() {
     const t = setInterval(() => {
       api
         .getFollow(jobId)
-        .then(setJob)
+        .then((j) => {
+          if (isJob(j)) setJob(j);
+          else {
+            setJob(null);                       // the server lost the job (restart): stop polling it
+            forgetJob();
+          }
+        })
         .catch(() => undefined);
     }, 4000);
     return () => clearInterval(t);
@@ -117,9 +132,12 @@ export function FollowProfiles() {
     for (let i = 0; i < 30; i++) {
       await new Promise((r) => setTimeout(r, 1000));
       const j = await api.getFollow(id);
+      if (!isJob(j)) throw new Error("the server no longer has this preview");
       if (j.status !== "running") return j;
     }
-    return api.getFollow(id);
+    const last = await api.getFollow(id);
+    if (!isJob(last)) throw new Error("the server no longer has this preview");
+    return last;
   }, []);
 
   async function preview() {
@@ -129,6 +147,7 @@ export function FollowProfiles() {
     setEligible(null);
     try {
       const first = await api.startFollow(`https://x.com/${handle}`, countOf("all"), true);
+      if (!isJob(first)) throw new Error("the server did not accept the preview");
       const done = first.status === "running" ? await waitForJob(first.job_id) : first;
       if (done.error) setErr(done.error);
       else setEligible(done.planned);
@@ -146,6 +165,7 @@ export function FollowProfiles() {
     setConfirm(false);
     try {
       const j = await api.startFollow(`https://x.com/${handle}`, countOf(pick), false);
+      if (!isJob(j)) throw new Error("the server did not start the job");
       setJob(j);
       try {
         localStorage.setItem(STORE_KEY, j.job_id);
