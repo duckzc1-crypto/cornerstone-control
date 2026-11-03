@@ -1,3 +1,4 @@
+import { nowS } from "./clock";
 /** 1234 -> "1.2K", 3_400_000 -> "3.4M", null -> "—". */
 export function fmtCount(n: number | null | undefined): string {
   if (n == null || !isFinite(n)) return "—";
@@ -35,7 +36,7 @@ export function fmtAge(seconds: number | null | undefined): string {
 
 /** Epoch seconds -> age in seconds from now. */
 export function ageSince(epochSeconds: number): number {
-  return Date.now() / 1000 - epochSeconds;
+  return nowS() - epochSeconds;
 }
 
 export const POST_RE = /(?:x|twitter)\.com\/([^/\s]+)\/status\/(\d+)/i;

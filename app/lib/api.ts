@@ -1,6 +1,7 @@
 // Typed client for the auto-tt backend. Every request goes to this app's own /api/* proxy
 // route (app/api/[...path]/route.ts), which adds the token server-side. The browser never
 // sees the backend URL or the token.
+import { noteServerTime } from "./clock";
 
 export interface Account {
   account: string;
@@ -257,6 +258,7 @@ async function readError(res: Response, label: string): Promise<Error> {
 
 async function getJSON<T>(path: string, timeoutMs: number = REQUEST_TIMEOUT_MS): Promise<T> {
   const res = await fetch(path, { cache: "no-store", signal: AbortSignal.timeout(timeoutMs) });
+  noteServerTime(res.headers.get("x-server-time"));
   if (!res.ok) throw await readError(res, `GET ${path}`);
   return res.json() as Promise<T>;
 }
@@ -267,6 +269,7 @@ async function sendJSON<T>(method: string, path: string, body?: unknown): Promis
     headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+  noteServerTime(res.headers.get("x-server-time"));
   if (!res.ok) throw await readError(res, `${method} ${path}`);
   return res.json() as Promise<T>;
 }

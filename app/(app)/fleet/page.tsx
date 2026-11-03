@@ -3,6 +3,7 @@
 import { api } from "../../lib/api";
 import { fmtAge, fmtCount, fmtEta } from "../../lib/format";
 import { usePoll } from "../../lib/usePoll";
+import { nowS } from "../../lib/clock";
 import { Card, Empty, Freshness, Notice, PageHeader, Pill, Skeleton, Stat } from "../../components/ui";
 import { RestartFleet } from "../../components/RestartFleet";
 import { AccountsList } from "../../components/AccountsList";
@@ -19,7 +20,7 @@ export default function FleetPage() {
   const h = health.data;
   const tp = ae.data?.throughput;
   // Only trust the server-stats feed while it is fresh: it can stop updating silently.
-  const feedAgeS = f?.ts != null ? Date.now() / 1000 - f.ts : null;
+  const feedAgeS = f?.ts != null ? nowS() - f.ts : null;
   const feedFresh = feedAgeS != null && feedAgeS < 300;
   const threads = feedFresh ? f?.server_threads ?? null : null;
   const load = feedFresh ? f?.server_load ?? null : null;

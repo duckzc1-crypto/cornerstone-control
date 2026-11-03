@@ -65,7 +65,11 @@ async function forward(req: NextRequest, path: string[]): Promise<NextResponse> 
     const text = await res.text();
     return new NextResponse(text, {
       status: res.status,
-      headers: { "content-type": res.headers.get("content-type") || "application/json" },
+      headers: {
+        "content-type": res.headers.get("content-type") || "application/json",
+        // lets the page measure ages with the server's clock, not the (possibly wrong) browser clock
+        "x-server-time": String(Date.now() / 1000),
+      },
     });
   } catch (e) {
     const aborted = e instanceof Error && e.name === "AbortError";

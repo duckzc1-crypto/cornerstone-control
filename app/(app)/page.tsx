@@ -6,6 +6,7 @@ import { ArrowRight } from "@phosphor-icons/react";
 import { api, MetricsResp } from "../lib/api";
 import { fmtCount, fmtEta, fmtFull } from "../lib/format";
 import { usePoll } from "../lib/usePoll";
+import { nowS } from "../lib/clock";
 import { workingOrder } from "../lib/order";
 import { Card, Empty, Freshness, Notice, PageHeader, Skeleton, Stat } from "../components/ui";
 import { PostListHeader, PostRow } from "../components/PostRow";
@@ -35,7 +36,7 @@ export default function OverviewPage() {
   const tp = ae.data?.throughput;
   // The posts' own counts are the live source. The server-stats feed is used only while it is fresh,
   // because it can stop updating without any error (it did, for 19 hours, after the server move).
-  const fleetFresh = fleet.data?.ts != null && Date.now() / 1000 - fleet.data.ts < 300;
+  const fleetFresh = fleet.data?.ts != null && nowS() - fleet.data.ts < 300;
   const speed = tp?.views_per_min ?? (fleetFresh ? fleet.data?.views_per_min : null) ?? null;
   const eta = tp?.eta_hours ?? (fleetFresh ? fleet.data?.eta_hours : null) ?? null;
   const remaining = tp?.remaining_views ?? (fleetFresh ? fleet.data?.remaining : null) ?? null;
