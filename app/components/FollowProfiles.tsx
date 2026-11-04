@@ -236,7 +236,7 @@ export function FollowProfiles() {
 
       {eligible != null && (
         <p className="mt-3 text-sm text-muted">
-          <span className="tnum font-mono text-fg">{eligible.toLocaleString()}</span> accounts could follow @{handle} right now (healthy and under today&rsquo;s limit).
+          <span className="tnum font-mono text-fg">{eligible.toLocaleString()}</span> accounts could follow @{handle} right now (logged in, under today&rsquo;s limit, and not already counted as following it).
         </p>
       )}
 
@@ -298,6 +298,7 @@ export function FollowProfiles() {
           <div className="tnum mt-2 flex flex-wrap gap-x-6 gap-y-1 font-mono text-xs text-muted">
             <span>planned {job.planned.toLocaleString()}</span>
             <span>tried {job.attempted.toLocaleString()}</span>
+            {(job.skipped_known ?? 0) > 0 && <span>already followed, skipped {(job.skipped_known ?? 0).toLocaleString()}</span>}
             <span className="text-accent">followed {job.succeeded.toLocaleString()}</span>
             <span className={failed ? "text-danger" : ""}>failed {failed.toLocaleString()}</span>
           </div>
