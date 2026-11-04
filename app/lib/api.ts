@@ -198,6 +198,7 @@ export interface FollowJob {
   attempted: number;
   succeeded: number;
   skipped_known?: number; // accounts left out because they already followed this profile (older servers omit it)
+  already_following?: number; // accounts found already following when checked live (inside planned)
   results: { account: string; ok: boolean; error?: string }[];
 }
 

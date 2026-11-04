@@ -188,7 +188,7 @@ export function FollowProfiles() {
       title="Make accounts follow a profile"
       subtitle={
         <>
-          Accounts that follow a profile before they engage with it look more natural. Following is the riskiest thing the fleet does, so
+          Before each follow the server asks X whether that account already follows the profile, and skips it if so. Following is the riskiest thing the fleet does, so
           this runs slowly: at most {DAILY_CAP} follows per account per day, a random 15-40 second pause between follows, healthy accounts
           only, and it stops by itself after 5 failures in a row.
         </>
@@ -293,12 +293,14 @@ export function FollowProfiles() {
             </Pill>
           </div>
           <div className="mt-3">
-            <Progress value={job.attempted} max={Math.max(1, job.planned)} tone={job.halted ? "bad" : "ok"} />
+            <Progress value={job.attempted + (job.already_following ?? 0)} max={Math.max(1, job.planned)} tone={job.halted ? "bad" : "ok"} />
           </div>
           <div className="tnum mt-2 flex flex-wrap gap-x-6 gap-y-1 font-mono text-xs text-muted">
             <span>planned {job.planned.toLocaleString()}</span>
-            <span>tried {job.attempted.toLocaleString()}</span>
-            {(job.skipped_known ?? 0) > 0 && <span>already followed, skipped {(job.skipped_known ?? 0).toLocaleString()}</span>}
+            <span>checked {(job.attempted + (job.already_following ?? 0)).toLocaleString()}</span>
+            {(job.skipped_known ?? 0) + (job.already_following ?? 0) > 0 && (
+              <span>already following, skipped {((job.skipped_known ?? 0) + (job.already_following ?? 0)).toLocaleString()}</span>
+            )}
             <span className="text-accent">followed {job.succeeded.toLocaleString()}</span>
             <span className={failed ? "text-danger" : ""}>failed {failed.toLocaleString()}</span>
           </div>
